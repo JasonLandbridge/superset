@@ -57,7 +57,6 @@ export function appendLaunchesToPaneLayout({
 
 	for (const launch of launches) {
 		store.getState().addTab({
-			titleOverride: launch.label,
 			panes: [
 				launch.kind === "chat"
 					? {
