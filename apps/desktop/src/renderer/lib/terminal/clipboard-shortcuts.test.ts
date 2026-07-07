@@ -117,6 +117,12 @@ describe("shouldBubbleClipboardShortcut", () => {
 				expected: true,
 			},
 			{
+				name: "Linux Ctrl+V",
+				event: makeEvent({ code: "KeyV", ctrlKey: true }),
+				options: { isMac: false, isWindows: false, hasSelection: false },
+				expected: true,
+			},
+			{
 				name: "Linux Ctrl+Shift+V",
 				event: makeEvent({ code: "KeyV", ctrlKey: true, shiftKey: true }),
 				options: { isMac: false, isWindows: false, hasSelection: false },
@@ -127,6 +133,18 @@ describe("shouldBubbleClipboardShortcut", () => {
 				event: makeEvent({ code: "Insert", shiftKey: true }),
 				options: { isMac: false, isWindows: false, hasSelection: false },
 				expected: true,
+			},
+			{
+				name: "Linux Ctrl+C with selection",
+				event: makeEvent({ code: "KeyC", ctrlKey: true }),
+				options: { isMac: false, isWindows: false, hasSelection: true },
+				expected: true,
+			},
+			{
+				name: "Linux Ctrl+C without selection stays with the PTY (SIGINT)",
+				event: makeEvent({ code: "KeyC", ctrlKey: true }),
+				options: { isMac: false, isWindows: false, hasSelection: false },
+				expected: false,
 			},
 			{
 				name: "Linux Ctrl+Shift+C without selection still bubbles",
