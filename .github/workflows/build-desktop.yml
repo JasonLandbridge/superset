@@ -1,6 +1,24 @@
 name: Build Desktop App
 
 on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: "Release channel (stable or canary)"
+        required: true
+        type: choice
+        default: "stable"
+        options:
+          - stable
+          - canary
+      version_suffix:
+        description: "Version suffix to append (e.g., -canary). Empty for stable."
+        required: false
+        type: string
+      version_override:
+        description: "Exact desktop version to build. Empty keeps package.json version."
+        required: false
+        type: string
   workflow_call:
     inputs:
       channel:
@@ -37,7 +55,7 @@ jobs:
   build-linux:
     name: Build - Linux (x64)
     runs-on: ubuntu-latest
-    environment: production
+    environment: ${{ github.event_name == 'workflow_dispatch' && 'development' || 'production' }}
 
     steps:
       - name: Checkout code
@@ -98,18 +116,16 @@ jobs:
       - name: Compile app with electron-vite
         working-directory: apps/desktop
         env:
-          NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
-          NEXT_PUBLIC_POSTHOG_HOST: ${{ secrets.NEXT_PUBLIC_POSTHOG_HOST }}
-          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
-          GH_CLIENT_ID: ${{ secrets.GH_CLIENT_ID }}
-          NEXT_PUBLIC_WEB_URL: ${{ secrets.NEXT_PUBLIC_WEB_URL }}
-          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
-          NEXT_PUBLIC_DOCS_URL: ${{ secrets.NEXT_PUBLIC_DOCS_URL }}
-          NEXT_PUBLIC_STREAMS_URL: ${{ secrets.NEXT_PUBLIC_STREAMS_URL }}
-          NEXT_PUBLIC_ELECTRIC_URL: ${{ secrets.NEXT_PUBLIC_ELECTRIC_URL }}
-          SENTRY_DSN_DESKTOP: ${{ secrets.SENTRY_DSN_DESKTOP }}
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          RELAY_URL: ${{ secrets.RELAY_URL }}
+          NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY || '' }}
+          NEXT_PUBLIC_POSTHOG_HOST: ${{ secrets.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com' }}
+          NEXT_PUBLIC_WEB_URL: ${{ secrets.NEXT_PUBLIC_WEB_URL || 'https://app.superset.sh' }}
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL || 'https://api.superset.sh' }}
+          NEXT_PUBLIC_DOCS_URL: ${{ secrets.NEXT_PUBLIC_DOCS_URL || 'https://docs.superset.sh' }}
+          NEXT_PUBLIC_STREAMS_URL: ${{ secrets.NEXT_PUBLIC_STREAMS_URL || 'https://streams.superset.sh' }}
+          NEXT_PUBLIC_ELECTRIC_URL: ${{ secrets.NEXT_PUBLIC_ELECTRIC_URL || 'https://electric-proxy.avi-6ac.workers.dev' }}
+          SENTRY_DSN_DESKTOP: ${{ secrets.SENTRY_DSN_DESKTOP || '' }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN || '' }}
+          RELAY_URL: ${{ secrets.RELAY_URL || 'https://relay.superset.sh' }}
           SUPERSET_WORKSPACE_NAME: superset
           TARGET_ARCH: x64
         run: bun run compile:app
