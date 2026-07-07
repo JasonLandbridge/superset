@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { writeFileIfChanged } from "./agent-wrappers-common";
+import { buildWrapperScript, createWrapper, writeFileIfChanged } from "./agent-wrappers-common";
 
 export const PI_EXTENSION_FILE = "superset-hooks.ts";
 
@@ -44,6 +44,24 @@ export function getPiExtensionPath(): string {
 export function getPiExtensionContent(): string {
 	const template = fs.readFileSync(PI_EXTENSION_TEMPLATE_PATH, "utf-8");
 	return template.replace("{{MARKER}}", PI_EXTENSION_MARKER);
+}
+
+/**
+ * Creates a pi wrapper at ~/.superset/bin/pi that passes
+ * --session-id $SUPERSET_PANE_ID so pi sessions are restored
+ * across cold starts.
+ */
+export function createPiWrapper(): void {
+	// ponytail: SUPERSET_PANE_ID is set by buildTerminalEnv for every terminal pane.
+	// Pi's --session-id flag resumes the last session keyed to that value.
+	const execLine = `if [ -n "$SUPERSET_PANE_ID" ]; then
+  exec "$REAL_BIN" --session-id "$SUPERSET_PANE_ID" "$@"
+else
+  exec "$REAL_BIN" "$@"
+fi`;
+
+	const script = buildWrapperScript("pi", execLine, { agentId: "pi" });
+	createWrapper("pi", script);
 }
 
 /**
