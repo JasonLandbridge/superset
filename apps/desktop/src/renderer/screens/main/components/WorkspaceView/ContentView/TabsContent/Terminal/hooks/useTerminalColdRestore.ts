@@ -33,8 +33,10 @@ export interface UseTerminalColdRestoreOptions {
 export interface UseTerminalColdRestoreReturn {
 	isRestoredMode: boolean;
 	restoredCwd: string | null;
+	restoredCommand: string | null;
 	setIsRestoredMode: (value: boolean) => void;
 	setRestoredCwd: (value: string | null) => void;
+	setRestoredCommand: (value: string | null) => void;
 	handleRetryConnection: () => void;
 	handleStartShell: () => void;
 }
@@ -68,10 +70,15 @@ export function useTerminalColdRestore({
 }: UseTerminalColdRestoreOptions): UseTerminalColdRestoreReturn {
 	const [isRestoredMode, setIsRestoredMode] = useState(false);
 	const [restoredCwd, setRestoredCwd] = useState<string | null>(null);
+	const [restoredCommand, setRestoredCommand] = useState<string | null>(null);
 
 	// Ref for restoredCwd to use in callbacks
 	const restoredCwdRef = useRef(restoredCwd);
 	restoredCwdRef.current = restoredCwd;
+
+	// Ref for restoredCommand to use in callbacks
+	const restoredCommandRef = useRef(restoredCommand);
+	restoredCommandRef.current = restoredCommand;
 
 	const handleRetryConnection = useCallback(() => {
 		setConnectionError(null);
@@ -104,9 +111,11 @@ export function useTerminalColdRestore({
 							isRestored: true,
 							cwd: result.previousCwd || null,
 							scrollback,
+							command: result.previousCommand || null,
 						});
 						setIsRestoredMode(true);
 						setRestoredCwd(result.previousCwd || null);
+						setRestoredCommand(result.previousCommand || null);
 
 						currentXterm.clear();
 						if (scrollback) {
@@ -191,7 +200,7 @@ export function useTerminalColdRestore({
 		pendingInitialStateRef.current = null;
 		resetModes();
 
-		// Create new session with previous cwd
+		// Create new session with previous cwd and command
 		createOrAttachRef.current(
 			{
 				paneId,
@@ -200,6 +209,7 @@ export function useTerminalColdRestore({
 				cols: xterm.cols,
 				rows: xterm.rows,
 				cwd: restoredCwdRef.current || undefined,
+				command: restoredCommandRef.current || undefined,
 				skipColdRestore: true,
 				allowKilled: true,
 			},
@@ -252,8 +262,10 @@ export function useTerminalColdRestore({
 	return {
 		isRestoredMode,
 		restoredCwd,
+		restoredCommand,
 		setIsRestoredMode,
 		setRestoredCwd,
+		setRestoredCommand,
 		handleRetryConnection,
 		handleStartShell,
 	};
