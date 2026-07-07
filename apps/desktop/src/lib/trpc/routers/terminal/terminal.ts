@@ -153,6 +153,7 @@ export const createTerminalRouter = () => {
 						// Cold restore fields (for reboot recovery)
 						isColdRestore: result.isColdRestore,
 						previousCwd: result.previousCwd,
+						previousCommand: result.previousCommand,
 						// Include snapshot for daemon mode (renderer can use for rehydration)
 						snapshot: result.snapshot,
 					};

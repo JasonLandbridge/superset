@@ -58,6 +58,7 @@ export interface SessionMetadata {
 	startedAt: string;
 	endedAt?: string;
 	exitCode?: number;
+	command?: string;
 }
 
 // =============================================================================
@@ -142,6 +143,7 @@ export class HistoryWriter {
 		cwd: string,
 		cols: number,
 		rows: number,
+		command?: string,
 	) {
 		this.dir = getHistoryDir(workspaceId, paneId);
 		this.scrollbackPath = getScrollbackPath(workspaceId, paneId);
@@ -152,6 +154,9 @@ export class HistoryWriter {
 			rows,
 			startedAt: new Date().toISOString(),
 		};
+		if (command) {
+			this.metadata.command = command;
+		}
 	}
 
 	/**
@@ -511,6 +516,7 @@ export class HistoryReader {
 		rows: number;
 		cwd: string;
 		endedAt?: string;
+		command?: string;
 	} | null> {
 		try {
 			const content = await fs.readFile(this.metaPath, "utf8");
@@ -521,6 +527,7 @@ export class HistoryReader {
 				rows: metadata.rows,
 				cwd: metadata.cwd,
 				endedAt: metadata.endedAt,
+				command: metadata.command,
 			};
 		} catch {
 			return null;
