@@ -365,7 +365,7 @@ export class HostServiceCoordinator extends EventEmitter {
 		// Dev: pipe child stdout/stderr through this process so log lines
 		// land in the developer's `bun dev` terminal. Production: hard-back
 		// stdio with the rotating log file.
-		const isDev = !app.isPackaged;
+		const isDev = process.env.NODE_ENV !== "production"; // ponytail: AUR electron reports isPackaged=true
 		const stdio: childProcess.StdioOptions = isDev
 			? ["ignore", "pipe", "pipe"]
 			: logFd >= 0
@@ -459,9 +459,7 @@ export class HostServiceCoordinator extends EventEmitter {
 		const childEnv = await getProcessEnvWithShellPath({
 			...(process.env as Record<string, string>),
 			ELECTRON_RUN_AS_NODE: "1",
-			NODE_ENV: app.isPackaged
-				? "production"
-				: (process.env.NODE_ENV ?? "development"),
+			NODE_ENV: process.env.NODE_ENV ?? "development",
 			ORGANIZATION_ID: organizationId,
 			HOST_CLIENT_ID: getHostId(),
 			HOST_NAME: getHostName(),
@@ -469,7 +467,8 @@ export class HostServiceCoordinator extends EventEmitter {
 			HOST_SERVICE_PORT: String(port),
 			HOST_MANIFEST_DIR: organizationDir,
 			HOST_DB_PATH: path.join(organizationDir, "host.db"),
-			HOST_MIGRATIONS_FOLDER: app.isPackaged
+			// ponytail: AUR electron reports isPackaged=true; use NODE_ENV instead
+		HOST_MIGRATIONS_FOLDER: process.env.NODE_ENV === "production"
 				? path.join(process.resourcesPath, "resources/host-migrations")
 				: path.join(app.getAppPath(), "../../packages/host-service/drizzle"),
 			DESKTOP_VITE_PORT: String(sharedEnv.DESKTOP_VITE_PORT),

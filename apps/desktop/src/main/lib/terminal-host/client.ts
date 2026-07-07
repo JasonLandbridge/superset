@@ -1245,7 +1245,7 @@ export class TerminalHostClient extends EventEmitter {
 
 			// Prod: detached so terminal sessions survive Electron restarts.
 			// Dev: attached so it dies with Electron on `bun dev` kill.
-			const isDev = !app.isPackaged;
+			const isDev = process.env.NODE_ENV !== "production"; // ponytail: AUR electron reports isPackaged=true
 			let child: ReturnType<typeof spawn> | null = null;
 			try {
 				child = spawn(process.execPath, [daemonScript], {
@@ -1302,7 +1302,9 @@ export class TerminalHostClient extends EventEmitter {
 	 * Get path to daemon script
 	 */
 	private getDaemonScriptPath(): string {
-		if (app.isPackaged) {
+		const isProduction = process.env.NODE_ENV === "production";
+		// ponytail: AUR electron reports isPackaged=true even in dev
+		if (isProduction && app.isPackaged) {
 			// Production: script is in app resources
 			return join(app.getAppPath(), "dist", "main", "terminal-host.js");
 		}
