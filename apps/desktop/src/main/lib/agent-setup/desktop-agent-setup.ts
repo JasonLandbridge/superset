@@ -61,29 +61,31 @@ const DESKTOP_AGENT_SETUP_RUNNERS: Record<DesktopAgentSetupAction, () => void> =
 		"vibe-wrapper": createVibeWrapper,
 	};
 
-/**
- * Run a complete agent setup pass for all enabled agents.
- * Called once on app startup and again on tray-settings "Apply" save.
- */
-export function setupAgentHooks(): void {
+export function setupDesktopAgentCapabilities(): void {
 	for (const action of DESKTOP_AGENT_SETUP_BOOTSTRAP_ACTIONS) {
-		try {
-			DESKTOP_AGENT_SETUP_RUNNERS[action]();
-		} catch (error) {
-			console.error(`[agent-setup] Failed to run action ${action}:`, error);
-		}
+		DESKTOP_AGENT_SETUP_RUNNERS[action]();
 	}
 
 	for (const target of DESKTOP_AGENT_SETUP_TARGETS) {
 		for (const action of target.setupActions) {
-			try {
-				DESKTOP_AGENT_SETUP_RUNNERS[action]();
-			} catch (error) {
-				console.error(
-					`[agent-setup] Failed to run action ${action} for ${target.id}:`,
-					error,
-				);
-			}
+			DESKTOP_AGENT_SETUP_RUNNERS[action]();
 		}
 	}
+}
+
+/**
+ * Re-run setupActions for one agent. Bootstrap actions run first because
+ * per-agent hooks reference the shared notify script — without them the
+ * per-agent setup isn't self-sufficient. Returns `false` for unknown ids.
+ */
+export function setupSingleAgent(agentId: string): boolean {
+	const target = DESKTOP_AGENT_SETUP_TARGETS.find((t) => t.id === agentId);
+	if (!target) return false;
+	for (const action of DESKTOP_AGENT_SETUP_BOOTSTRAP_ACTIONS) {
+		DESKTOP_AGENT_SETUP_RUNNERS[action]();
+	}
+	for (const action of target.setupActions) {
+		DESKTOP_AGENT_SETUP_RUNNERS[action]();
+	}
+	return true;
 }
