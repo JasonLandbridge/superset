@@ -1,63 +1,36 @@
 export {
-	AMP_PLUGIN_FILE,
-	AMP_PLUGIN_MARKER,
+	cleanupGlobalOpenCodePlugin,
 	createAmpPlugin,
 	createAmpWrapper,
-	getAmpGlobalPluginPath,
-	getAmpPluginContent,
+	getAmpContent,
+	isAmpManaged,
+	OPENCODE_PLUGIN_MARKER,
 } from "./agent-wrappers-amp";
+
 export {
-	buildCodexWrapperExecLine,
-	cleanupGlobalOpenCodePlugin,
+	buildClaudeSettingsMerger,
 	createClaudeSettingsJson,
 	createClaudeWrapper,
+	getClaudeSettingsJsonContent,
+} from "./agent-wrappers-claude-codex-opencode";
+
+export {
+	buildCodexWrapperExecLine,
+	CODEX_EXEC_MARKER,
+	CODEX_HOOKS_SIGNATURE,
+	CODEX_HOOKS_VERSION,
 	createCodexHooksJson,
 	createCodexWrapper,
-	createOpenCodePlugin,
-	createOpenCodeWrapper,
-	getClaudeGlobalSettingsJsonContent,
-	getClaudeGlobalSettingsJsonPath,
-	getClaudeManagedHookCommand,
-	getCodexGlobalHooksJsonContent,
-	getCodexGlobalHooksJsonPath,
-	getOpenCodeGlobalPluginPath,
-	getOpenCodePluginContent,
-	getOpenCodePluginPath,
-	OPENCODE_PLUGIN_FILE,
-	OPENCODE_PLUGIN_MARKER,
+	getCodexHooksJsonContent,
 } from "./agent-wrappers-claude-codex-opencode";
-export {
-	buildWrapperScript,
-	getWrapperPath,
-	WRAPPER_MARKER,
-} from "./agent-wrappers-common";
-export {
-	buildCopilotWrapperExecLine,
-	COPILOT_HOOK_MARKER,
-	COPILOT_HOOK_SCRIPT_NAME,
-	createCopilotHookScript,
-	createCopilotWrapper,
-	getCopilotHookScriptContent,
-	getCopilotHookScriptPath,
-	getCopilotHooksJsonContent,
-} from "./agent-wrappers-copilot";
-export {
-	CURSOR_HOOK_MARKER,
-	CURSOR_HOOK_SCRIPT_NAME,
-	createCursorAgentWrapper,
-	createCursorHookScript,
-	createCursorHooksJson,
-	getCursorGlobalHooksJsonPath,
-	getCursorHookScriptContent,
-	getCursorHookScriptPath,
-	getCursorHooksJsonContent,
-} from "./agent-wrappers-cursor";
+
 export {
 	createDroidSettingsJson,
 	createDroidWrapper,
 	getDroidSettingsJsonContent,
-	getDroidSettingsJsonPath,
+	DROID_SETTINGS_JSON_MARKER,
 } from "./agent-wrappers-droid";
+
 export {
 	createGeminiHookScript,
 	createGeminiSettingsJson,
@@ -67,16 +40,42 @@ export {
 	getGeminiHookScriptContent,
 	getGeminiHookScriptPath,
 	getGeminiSettingsJsonContent,
-	getGeminiSettingsJsonPath,
 } from "./agent-wrappers-gemini";
+
+export {
+	COPILOT_HOOK_MARKER,
+	COPILOT_HOOK_SCRIPT_NAME,
+	buildCopilotWrapperExecLine,
+	createCopilotHookScript,
+	createCopilotWrapper,
+	getCopilotHookScriptContent,
+	getCopilotHookScriptPath,
+	getCopilotHooksJsonContent,
+} from "./agent-wrappers-copilot";
+
 export {
 	createMastraHooksJson,
 	createMastraWrapper,
-	getMastraGlobalHooksJsonPath,
 	getMastraHooksJsonContent,
 } from "./agent-wrappers-mastra";
+
+export {
+	createCursorAgentWrapper,
+	createCursorHookScript,
+	createCursorHooksJson,
+	getCursorHookScriptContent,
+} from "./agent-wrappers-cursor";
+
+export {
+	createOpenCodePlugin,
+	createOpenCodeWrapper,
+	getOpenCodePluginPath,
+	getOpenCodePluginContent,
+} from "./agent-wrappers-claude-codex-opencode";
+
 export {
 	createPiExtension,
+	createPiWrapper,
 	getPiExtensionContent,
 	getPiExtensionPath,
 	PI_EXTENSION_FILE,
