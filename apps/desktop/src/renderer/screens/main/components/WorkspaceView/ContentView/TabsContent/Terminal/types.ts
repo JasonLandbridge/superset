@@ -24,6 +24,7 @@ export type CreateOrAttachResult = {
 	// Cold restore fields (for reboot recovery)
 	isColdRestore?: boolean;
 	previousCwd?: string;
+	previousCommand?: string;
 	snapshot?: {
 		snapshotAnsi: string;
 		rehydrateSequences: string;
