@@ -63,6 +63,11 @@ export interface SessionResult {
 	 * Use this to start the new shell in the same directory.
 	 */
 	previousCwd?: string;
+	/**
+	 * The command from the previous session (for cold restore).
+	 * When set, the new shell auto-executes this command after starting.
+	 */
+	previousCommand?: string;
 	/** Snapshot from daemon (if using daemon mode) */
 	snapshot?: {
 		snapshotAnsi: string;
