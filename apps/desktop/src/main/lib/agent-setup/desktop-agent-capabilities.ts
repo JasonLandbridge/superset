@@ -87,7 +87,7 @@ export const DESKTOP_AGENT_SETUP_TARGETS: DesktopAgentSetupTarget[] = [
 		managedBinary: true,
 	},
 	{
-		id: "mastra",
+		id: "mastracode",
 		setupActions: ["mastra-wrapper", "mastra-hooks-json"],
 		managedBinary: true,
 	},
