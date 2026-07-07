@@ -1,4 +1,4 @@
-import path from "node:path";
+import path, { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { settings } from "@superset/local-db";
 import {
@@ -59,12 +59,11 @@ void applyShellEnvToProcess().catch((error) => {
 	console.error("[main] Failed to apply shell environment:", error);
 });
 
-// Dev mode: label the app with the workspace name so multiple worktrees are distinguishable
+// Dev mode: use a distinct identity so the dev build can run alongside production
 if (IS_DEV) {
-	const workspaceName = resolveDevWorkspaceName();
-	if (workspaceName) {
-		app.setName(`Superset (${workspaceName})`);
-	}
+	app.setName("Superset Dev");
+	// ponytail: separate userData dir avoids single-instance-lock collision with prod
+	app.setPath("userData", path.join(app.getPath("appData"), "superset-dev"));
 }
 
 // Dev mode: register with execPath + app script so macOS launches Electron with our entry point
