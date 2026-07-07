@@ -16,6 +16,7 @@ export const DESKTOP_AGENT_SETUP_ACTIONS = [
 	"opencode-plugin",
 	"opencode-wrapper",
 	"pi-extension",
+	"pi-wrapper",
 	"cursor-hook-script",
 	"cursor-agent-wrapper",
 	"cursor-hooks-json",
@@ -33,16 +34,11 @@ export const DESKTOP_AGENT_SETUP_ACTIONS = [
 export type DesktopAgentSetupAction =
 	(typeof DESKTOP_AGENT_SETUP_ACTIONS)[number];
 
-interface DesktopAgentSetupTarget {
+export interface DesktopAgentSetupTarget {
 	id: AgentType;
-	setupActions: readonly DesktopAgentSetupAction[];
+	setupActions: DesktopAgentSetupAction[];
 	managedBinary?: boolean;
 }
-
-export const DESKTOP_AGENT_SETUP_BOOTSTRAP_ACTIONS = [
-	"cleanup-global-opencode-plugin",
-	"notify-script",
-] as const satisfies readonly DesktopAgentSetupAction[];
 
 export const DESKTOP_AGENT_SETUP_TARGETS = [
 	{
@@ -72,7 +68,8 @@ export const DESKTOP_AGENT_SETUP_TARGETS = [
 	},
 	{
 		id: "pi",
-		setupActions: ["pi-extension"],
+		setupActions: ["pi-extension", "pi-wrapper"],
+		managedBinary: true,
 	},
 	{
 		id: "cursor-agent",
@@ -108,6 +105,13 @@ export const DESKTOP_AGENT_SETUP_TARGETS = [
 	},
 ] as const satisfies readonly DesktopAgentSetupTarget[];
 
+/**
+ * Actions to always run (no target selection), in order. These are global
+ * setup steps (notify.sh, pkce-server, etc.) that every host needs.
+ */
+export const DESKTOP_AGENT_SETUP_BOOTSTRAP_ACTIONS: DesktopAgentSetupAction[] =
+	["notify-script"];
+
 export const SUPERSET_MANAGED_BINARIES = DESKTOP_AGENT_SETUP_TARGETS.filter(
 	(target) => "managedBinary" in target && target.managedBinary,
-).map((target) => target.id) satisfies SupersetManagedBinary[];
+).map((target) => target.id) as SupersetManagedBinary[];
