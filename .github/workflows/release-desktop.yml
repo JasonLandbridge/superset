@@ -7,18 +7,74 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version to release (e.g., 1.0.0)"
+        description: "Version to release from the selected branch (e.g., 1.13.2). Empty uses apps/desktop/package.json."
         required: false
         type: string
+        default: ""
+      publish:
+        description: "Publish immediately instead of creating a draft release."
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
 
 jobs:
+  prepare:
+    name: Resolve release metadata
+    runs-on: ubuntu-latest
+    outputs:
+      tag_name: ${{ steps.meta.outputs.tag_name }}
+      version: ${{ steps.meta.outputs.version }}
+      create_release: ${{ steps.meta.outputs.create_release }}
+      draft: ${{ steps.meta.outputs.draft }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Resolve metadata
+        id: meta
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ inputs.version }}"
+            if [ -z "$VERSION" ]; then
+              VERSION=$(node -p "require('./apps/desktop/package.json').version")
+            fi
+            if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]+)?$ ]]; then
+              echo "::error::Invalid version: $VERSION"
+              exit 1
+            fi
+            TAG_NAME="desktop-v${VERSION}"
+            CREATE_RELEASE="true"
+            if [ "${{ inputs.publish }}" = "true" ]; then
+              DRAFT="false"
+            else
+              DRAFT="true"
+            fi
+          else
+            TAG_NAME="${{ github.ref_name }}"
+            VERSION="${TAG_NAME#desktop-v}"
+            CREATE_RELEASE="true"
+            DRAFT="true"
+          fi
+
+          echo "tag_name=$TAG_NAME" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "create_release=$CREATE_RELEASE" >> "$GITHUB_OUTPUT"
+          echo "draft=$DRAFT" >> "$GITHUB_OUTPUT"
+          echo "Tag: $TAG_NAME"
+          echo "Version: $VERSION"
+          echo "Draft: $DRAFT"
+
   build:
+    needs: prepare
     uses: ./.github/workflows/build-desktop.yml
     with:
       channel: stable
+      version_override: ${{ needs.prepare.outputs.version }}
       electron_builder_config: electron-builder.ts
       artifact_prefix: desktop
       artifact_retention_days: 30
@@ -26,9 +82,9 @@ jobs:
 
   release:
     name: Create GitHub Release
-    needs: build
+    needs: [prepare, build]
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/desktop-v')
+    if: needs.prepare.outputs.create_release == 'true'
 
     steps:
       - name: Checkout code
@@ -39,11 +95,9 @@ jobs:
       - name: Find previous desktop release tag
         id: prev_tag
         run: |
-          CURRENT_TAG="${{ github.ref_name }}"
-          # Get all desktop tags sorted by version, find the one before current
-          PREVIOUS_TAG=$(git tag -l 'desktop-v*' | sort -V | grep -B1 "^${CURRENT_TAG}$" | head -1)
+          CURRENT_TAG="${{ needs.prepare.outputs.tag_name }}"
+          PREVIOUS_TAG=$(git tag -l 'desktop-v*' | sort -V | grep -B1 "^${CURRENT_TAG}$" | head -1 || true)
           if [ "$PREVIOUS_TAG" = "$CURRENT_TAG" ] || [ -z "$PREVIOUS_TAG" ]; then
-            # Current tag is the first or no previous found, get the oldest desktop tag
             PREVIOUS_TAG=""
           fi
           echo "current_tag=${CURRENT_TAG}" >> $GITHUB_OUTPUT
@@ -66,11 +120,8 @@ jobs:
       - name: Create stable-named copies for latest download URLs
         run: |
           cd release-artifacts
-          # Create stable-named copies (without version) for /releases/latest/download/ URLs
           for file in *.dmg; do
             if [[ -f "$file" ]]; then
-              # Extract architecture from filename (e.g., Superset-0.0.1-arm64.dmg -> arm64)
-              # x64 builds may omit the arch suffix (Superset-0.0.1.dmg), default to x64
               arch=$(echo "$file" | sed -E 's/.*-([^-]+)\.dmg$/\1/')
               if [[ "$arch" =~ ^[0-9]+\.[0-9]+\.[0-9] ]]; then
                 arch="x64"
@@ -81,8 +132,6 @@ jobs:
           done
           for file in *-mac.zip; do
             if [[ -f "$file" ]]; then
-              # Extract architecture from filename (e.g., Superset-0.0.1-arm64-mac.zip -> arm64)
-              # x64 builds may omit the arch suffix (Superset-0.0.1-mac.zip), default to x64
               arch=$(echo "$file" | sed -E 's/.*-([^-]+)-mac\.zip$/\1/')
               if [[ "$arch" =~ ^[0-9]+\.[0-9]+\.[0-9] ]]; then
                 arch="x64"
@@ -93,13 +142,11 @@ jobs:
           done
           for file in *.AppImage; do
             if [[ -f "$file" ]]; then
-              # Extract architecture from filename (e.g., superset-0.0.1-x64.AppImage -> x64)
               arch=$(echo "$file" | sed -E 's/.*-([^-]+)\.AppImage$/\1/')
               cp "$file" "Superset-${arch}.AppImage"
               echo "Created stable copy: Superset-${arch}.AppImage"
             fi
           done
-          # Keep Linux updater manifest at a stable filename for generic provider lookups.
           for file in *-linux.yml; do
             if [[ -f "$file" && "$file" != "latest-linux.yml" ]]; then
               cp "$file" "latest-linux.yml"
@@ -118,29 +165,46 @@ jobs:
           PREVIOUS_TAG="${{ steps.prev_tag.outputs.previous_tag }}"
           CURRENT_TAG="${{ steps.prev_tag.outputs.current_tag }}"
 
-          if [ -n "$PREVIOUS_TAG" ]; then
-            echo "Generating notes from ${PREVIOUS_TAG} to ${CURRENT_TAG}"
-            NOTES=$(gh api repos/${{ github.repository }}/releases/generate-notes \
-              -f tag_name="${CURRENT_TAG}" \
-              -f previous_tag_name="${PREVIOUS_TAG}" \
-              --jq '.body')
+          if git rev-parse "$CURRENT_TAG" >/dev/null 2>&1; then
+            if [ -n "$PREVIOUS_TAG" ]; then
+              NOTES=$(gh api repos/${{ github.repository }}/releases/generate-notes \
+                -f tag_name="${CURRENT_TAG}" \
+                -f previous_tag_name="${PREVIOUS_TAG}" \
+                --jq '.body')
+            else
+              NOTES=$(gh api repos/${{ github.repository }}/releases/generate-notes \
+                -f tag_name="${CURRENT_TAG}" \
+                --jq '.body')
+            fi
           else
-            echo "No previous tag found, generating notes without comparison"
-            NOTES=$(gh api repos/${{ github.repository }}/releases/generate-notes \
-              -f tag_name="${CURRENT_TAG}" \
-              --jq '.body')
+            NOTES="Manual desktop release from ${{ github.ref_name }} at ${{ github.sha }}."
           fi
 
-          # Write to file to preserve formatting
           echo "$NOTES" > release_notes.md
-          echo "Release notes generated"
 
-      - name: Create Release
+      - name: Create or update release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ needs.prepare.outputs.tag_name }}
+          DRAFT: ${{ needs.prepare.outputs.draft }}
         run: |
-          gh release create "${{ github.ref_name }}" \
-            release-artifacts/* \
-            --title "Superset Desktop ${{ github.ref_name }}" \
-            --notes-file release_notes.md \
-            --draft
+          set -euo pipefail
+          draft_flag=()
+          if [ "$DRAFT" = "true" ]; then
+            draft_flag=(--draft)
+          fi
+
+          if gh release view "$TAG_NAME" >/dev/null 2>&1; then
+            gh release upload "$TAG_NAME" release-artifacts/* --clobber
+            gh release edit "$TAG_NAME" \
+              --title "Superset Desktop $TAG_NAME" \
+              --notes-file release_notes.md \
+              --draft="$DRAFT"
+          else
+            gh release create "$TAG_NAME" \
+              release-artifacts/* \
+              --title "Superset Desktop $TAG_NAME" \
+              --notes-file release_notes.md \
+              --target "${{ github.sha }}" \
+              "${draft_flag[@]}"
+          fi
