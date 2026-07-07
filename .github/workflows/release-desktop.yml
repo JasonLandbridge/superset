@@ -112,34 +112,9 @@ jobs:
           pattern: desktop-*
           merge-multiple: true
 
-      - name: Merge macOS auto-update manifests
-        uses: ./.github/actions/merge-mac-manifests
-        with:
-          artifact-prefix: desktop
-
       - name: Create stable-named copies for latest download URLs
         run: |
           cd release-artifacts
-          for file in *.dmg; do
-            if [[ -f "$file" ]]; then
-              arch=$(echo "$file" | sed -E 's/.*-([^-]+)\.dmg$/\1/')
-              if [[ "$arch" =~ ^[0-9]+\.[0-9]+\.[0-9] ]]; then
-                arch="x64"
-              fi
-              cp "$file" "Superset-${arch}.dmg"
-              echo "Created stable copy: Superset-${arch}.dmg"
-            fi
-          done
-          for file in *-mac.zip; do
-            if [[ -f "$file" ]]; then
-              arch=$(echo "$file" | sed -E 's/.*-([^-]+)-mac\.zip$/\1/')
-              if [[ "$arch" =~ ^[0-9]+\.[0-9]+\.[0-9] ]]; then
-                arch="x64"
-              fi
-              cp "$file" "Superset-${arch}-mac.zip"
-              echo "Created stable copy: Superset-${arch}-mac.zip"
-            fi
-          done
           for file in *.AppImage; do
             if [[ -f "$file" ]]; then
               arch=$(echo "$file" | sed -E 's/.*-([^-]+)\.AppImage$/\1/')
