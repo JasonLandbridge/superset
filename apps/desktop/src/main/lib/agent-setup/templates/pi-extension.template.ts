@@ -7,11 +7,12 @@
  * sessions, the same way it does for Claude Code, Codex, etc.
  *
  * Mapping:
- *   pi `before_agent_start`  → Claude `UserPromptSubmit`  → Superset `Start`
- *   pi `tool_execution_end`  → Claude `PostToolUse`       → progress signal
- *   pi `agent_end`           → Claude `Stop`              → completion / chime
- *   pi `session_end`         → Claude `SessionEnd`        → pane icon detach
- *   pi `session_shutdown`    → Claude `Stop`              → cleanup on quit/reload
+ *   pi `before_agent_start`      → Claude `UserPromptSubmit`  → Superset `Start`
+ *   pi `tool_call(ask_question)` → Claude `PermissionRequest` → Superset permission indicator
+ *   pi `tool_execution_end`      → Claude `PostToolUse`       → progress signal
+ *   pi `agent_end`               → Claude `Stop`              → completion / chime
+ *   pi `session_end`             → Claude `SessionEnd`        → pane icon detach
+ *   pi `session_shutdown`        → Claude `Stop`              → cleanup on quit/reload
  *
  * Activates only when running inside a v2 Superset terminal (detected via
  * SUPERSET_TERMINAL_ID). Outside Superset it's a complete no-op. If notify.sh
@@ -83,6 +84,18 @@ export default function (pi: ExtensionAPI) {
 	pi.on("before_agent_start", (_event, ctx) => {
 		if (skip(ctx)) return;
 		fire("UserPromptSubmit");
+	});
+
+	// When the model calls ask_user_question, pi renders an interactive
+	// questionnaire in the TUI. Let Superset know the agent is blocked on
+	// user input so the host can show a permission-needed indicator and
+	// fire an OS-level notification. `agent_end` already maps to `Stop`,
+	// which clears the permission status when the question is resolved.
+	pi.on("tool_call", (event, ctx) => {
+		if (skip(ctx)) return;
+		if (event.toolName === "ask_user_question") {
+			fire("PermissionRequest");
+		}
 	});
 
 	pi.on("tool_execution_end", (_event, ctx) => {
