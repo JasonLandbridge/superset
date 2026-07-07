@@ -14,6 +14,9 @@ import baseConfig from "./electron-builder";
 import pkg from "./package.json";
 
 const productName = "Superset Canary";
+const [publishOwner = "superset-sh", publishRepo = "superset"] = (
+	process.env.GITHUB_REPOSITORY ?? "superset-sh/superset"
+).split("/");
 const canaryMacIconPath = join(pkg.resources, "build/icons/icon-canary.icns");
 const canaryLinuxIconPath = join(pkg.resources, "build/icons/icon-canary.png");
 const canaryWinIconPath = join(pkg.resources, "build/icons/icon-canary.ico");
@@ -25,8 +28,8 @@ const config: Configuration = {
 
 	publish: {
 		provider: "github",
-		owner: "superset-sh",
-		repo: "superset",
+		owner: publishOwner,
+		repo: publishRepo,
 		releaseType: "prerelease",
 	},
 

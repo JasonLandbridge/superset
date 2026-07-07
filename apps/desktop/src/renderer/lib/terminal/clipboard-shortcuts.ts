@@ -65,8 +65,9 @@ export function shouldBubbleClipboardShortcut(
 	}
 
 	return (
-		(event.code === "KeyV" && ctrlShiftOnly) ||
+		(event.code === "KeyV" && (onlyCtrl || ctrlShiftOnly)) ||
 		(event.code === "Insert" && onlyShift) ||
-		(event.code === "KeyC" && ctrlShiftOnly)
+		(event.code === "KeyC" && ctrlShiftOnly) ||
+		(event.code === "KeyC" && onlyCtrl && hasSelection)
 	);
 }
