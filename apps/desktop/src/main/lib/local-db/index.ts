@@ -34,15 +34,16 @@ function getMigrationsDirectory(): string {
 		typeof app?.getAppPath === "function" &&
 		typeof app?.isPackaged === "boolean";
 
-	if (isElectron && app.isPackaged) {
-		return join(process.resourcesPath, "resources/migrations");
-	}
-
 	const isDev = env.NODE_ENV === "development";
 
+	// ponytail: dev path first — system electron (AUR) reports isPackaged=true
+	// even in dev mode, which would otherwise resolve to the wrong path.
 	if (isElectron && isDev) {
-		// Development: source files in monorepo
 		return join(app.getAppPath(), "../../packages/local-db/drizzle");
+	}
+
+	if (isElectron && app.isPackaged) {
+		return join(process.resourcesPath, "resources/migrations");
 	}
 
 	// Preview mode or test: __dirname is dist/main, so go up one level to dist/resources/migrations
