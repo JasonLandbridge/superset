@@ -388,6 +388,7 @@ export class DaemonTerminalManager extends EventEmitter {
 						wasRecovered: true,
 						isColdRestore: true,
 						previousCwd: stickyRestore.previousCwd,
+						previousCommand: stickyRestore.previousCommand,
 						snapshot: {
 							snapshotAnsi: stickyRestore.scrollback,
 							rehydrateSequences: "",
@@ -529,6 +530,7 @@ export class DaemonTerminalManager extends EventEmitter {
 						cols: effectiveCols,
 						rows: effectiveRows,
 						initialScrollback,
+						command,
 					})
 					.catch((error) => {
 						console.error(
@@ -595,6 +597,7 @@ export class DaemonTerminalManager extends EventEmitter {
 		this.coldRestoreInfo.set(paneId, {
 			scrollback,
 			previousCwd: metadata.cwd,
+			previousCommand: metadata.command,
 			cols: metadata.cols || cols,
 			rows: metadata.rows || rows,
 		});
@@ -605,6 +608,7 @@ export class DaemonTerminalManager extends EventEmitter {
 			wasRecovered: true,
 			isColdRestore: true,
 			previousCwd: metadata.cwd,
+			previousCommand: metadata.command,
 			snapshot: {
 				snapshotAnsi: scrollback,
 				rehydrateSequences: "",

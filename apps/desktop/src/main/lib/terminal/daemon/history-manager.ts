@@ -22,6 +22,7 @@ export class HistoryManager {
 		cols,
 		rows,
 		initialScrollback,
+		command,
 	}: {
 		paneId: string;
 		workspaceId: string;
@@ -29,6 +30,7 @@ export class HistoryManager {
 		cols: number;
 		rows: number;
 		initialScrollback?: string;
+		command?: string;
 	}): Promise<void> {
 		this.historyInitializing.add(paneId);
 		this.pendingHistoryData.set(paneId, []);
@@ -58,7 +60,7 @@ export class HistoryManager {
 		}
 
 		try {
-			const writer = new HistoryWriter(workspaceId, paneId, cwd, cols, rows);
+			const writer = new HistoryWriter(workspaceId, paneId, cwd, cols, rows, command);
 			await writer.init(safeScrollback);
 			this.historyWriters.set(paneId, writer);
 

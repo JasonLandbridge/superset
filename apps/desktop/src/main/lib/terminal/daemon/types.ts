@@ -14,6 +14,7 @@ export interface SessionInfo {
 export interface ColdRestoreInfo {
 	scrollback: string;
 	previousCwd: string | undefined;
+	previousCommand: string | undefined;
 	cols: number;
 	rows: number;
 }
