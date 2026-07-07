@@ -623,6 +623,7 @@ export function useTerminalLifecycle({
 											isRestored: true,
 											cwd: result.previousCwd || null,
 											scrollback,
+											command: result.previousCommand || null,
 										});
 										setIsRestoredMode(true);
 										setRestoredCwd(result.previousCwd || null);
