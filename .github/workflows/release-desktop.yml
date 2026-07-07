@@ -17,8 +17,7 @@ on:
         type: boolean
         default: false
 
-permissions:
-  contents: write
+permissions: write-all
 
 jobs:
   prepare:
