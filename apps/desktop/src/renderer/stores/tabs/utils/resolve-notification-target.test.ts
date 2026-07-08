@@ -217,7 +217,10 @@ describe("resolveNotificationTarget", () => {
 				tabs: [createTab("tab-1", "ws-1")],
 			};
 
-			const result = resolveNotificationTarget({ terminalId: "term-1" }, state);
+			const result = resolveNotificationTarget(
+				{ terminalId: "term-1" },
+				state,
+			);
 
 			expect(result).toEqual({
 				paneId: "pane-1",
