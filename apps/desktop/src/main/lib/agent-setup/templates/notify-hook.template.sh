@@ -76,19 +76,28 @@ json_escape() {
 if [ -n "$SUPERSET_HOST_AGENT_HOOK_URL" ] && [ -n "$SUPERSET_TERMINAL_ID" ]; then
   PAYLOAD="{\"json\":{\"terminalId\":\"$(json_escape "$SUPERSET_TERMINAL_ID")\",\"eventType\":\"$(json_escape "$EVENT_TYPE")\",\"agent\":{\"agentId\":\"$(json_escape "$SUPERSET_AGENT_ID")\",\"sessionId\":\"$(json_escape "$SESSION_ID")\"}}}"
 
-  STATUS_CODE=$(curl -sX POST "$SUPERSET_HOST_AGENT_HOOK_URL" \
+  RESPONSE=$(curl -sX POST "$SUPERSET_HOST_AGENT_HOOK_URL" \
     --connect-timeout 2 --max-time 5 \
     -H "Content-Type: application/json" \
     -d "$PAYLOAD" \
-    -o /dev/null -w "%{http_code}" 2>/dev/null)
+    -w "\n%{http_code}" 2>/dev/null)
+
+  STATUS_CODE=$(echo "$RESPONSE" | tail -n1)
+  RESPONSE_BODY=$(echo "$RESPONSE" | head -n -1)
 
   if [ "$DEBUG_HOOKS_ENABLED" = "1" ]; then
-    echo "[notify-hook] host-service dispatched status=$STATUS_CODE" >&2
+    echo "[notify-hook] host-service dispatched status=$STATUS_CODE body=$RESPONSE_BODY" >&2
   fi
   debug_log "host-service status=$STATUS_CODE url=$SUPERSET_HOST_AGENT_HOOK_URL"
 
   case "$STATUS_CODE" in
-    2*) exit 0 ;;
+    2*)
+      # Only exit early if the host-service actually handled the event
+      if ! echo "$RESPONSE_BODY" | grep -q '"ignored":true'; then
+        exit 0
+      fi
+      debug_log "host-service ignored event, falling back to v1"
+      ;;
   esac
 fi
 
