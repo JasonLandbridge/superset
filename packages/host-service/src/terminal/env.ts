@@ -170,11 +170,12 @@ export function buildV2TerminalEnv(
 
 	env.TERM = "xterm-256color";
 	env.SHELL = shell;
-	// claude-code and similar chat TUIs only parse kitty CSI-u (e.g. Shift+Enter
-	// → \x1b[13;2u) when TERM_PROGRAM ∈ {ghostty, kitty, iTerm.app, WezTerm,
-	// WarpTerminal}. xterm.js already emits the right bytes — claim kitty so
-	// they're parsed instead of submitted as plain Enter.
-	env.TERM_PROGRAM = "kitty";
+	// Avoid claiming "kitty" — xterm.js does not implement the full Kitty
+	// keyboard protocol. Claiming it causes programs to enable CSI-u encoding
+	// for all keys, which corrupts TUI prompts (arrows, modifiers, etc.) and
+	// produces raw escape-sequence garbage in the terminal. Cmd+Enter line
+	// editing is handled by xterm.js's own line-edit-translations handler.
+	env.TERM_PROGRAM = "superset";
 	env.TERM_PROGRAM_VERSION = hostServiceVersion;
 	env.COLORTERM = "truecolor";
 	env.COLORFGBG = themeType === "light" ? "0;15" : "15;0";
