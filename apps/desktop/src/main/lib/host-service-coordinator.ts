@@ -516,9 +516,10 @@ export class HostServiceCoordinator extends EventEmitter {
 			HOST_MANIFEST_DIR: organizationDir,
 			HOST_DB_PATH: path.join(organizationDir, "host.db"),
 			// ponytail: AUR electron reports isPackaged=true; use NODE_ENV instead
-		HOST_MIGRATIONS_FOLDER: process.env.NODE_ENV === "production"
-				? path.join(process.resourcesPath, "resources/host-migrations")
-				: path.join(app.getAppPath(), "../../packages/host-service/drizzle"),
+			HOST_MIGRATIONS_FOLDER:
+				process.env.NODE_ENV === "production"
+					? path.join(process.resourcesPath, "resources/host-migrations")
+					: path.join(app.getAppPath(), "../../packages/host-service/drizzle"),
 			DESKTOP_VITE_PORT: String(sharedEnv.DESKTOP_VITE_PORT),
 			SUPERSET_HOME_DIR: SUPERSET_HOME_DIR,
 			SUPERSET_LEGACY_WORKTREE_BASE_DIR: row?.worktreeBaseDir ?? "",

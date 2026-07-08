@@ -60,7 +60,14 @@ export class HistoryManager {
 		}
 
 		try {
-			const writer = new HistoryWriter(workspaceId, paneId, cwd, cols, rows, command);
+			const writer = new HistoryWriter(
+				workspaceId,
+				paneId,
+				cwd,
+				cols,
+				rows,
+				command,
+			);
 			await writer.init(safeScrollback);
 			this.historyWriters.set(paneId, writer);
 

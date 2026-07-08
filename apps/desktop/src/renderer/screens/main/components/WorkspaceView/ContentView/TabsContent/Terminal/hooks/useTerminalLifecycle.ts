@@ -606,6 +606,18 @@ export function useTerminalLifecycle({
 									if (storedColdRestore?.isRestored) {
 										setIsRestoredMode(true);
 										setRestoredCwd(storedColdRestore.cwd);
+										// Fall back to pane's workspaceRun.command when
+										// terminal history metadata lacks the command.
+										if (!storedColdRestore.command) {
+											const pane = useTabsStore.getState().panes[paneId];
+											const workspaceRunCommand = pane?.workspaceRun?.command;
+											if (workspaceRunCommand) {
+												coldRestoreState.set(paneId, {
+													...storedColdRestore,
+													command: workspaceRunCommand,
+												});
+											}
+										}
 										if (storedColdRestore.scrollback && xterm) {
 											xterm.write(
 												storedColdRestore.scrollback,
@@ -619,11 +631,18 @@ export function useTerminalLifecycle({
 									if (result.isColdRestore) {
 										const scrollback =
 											result.snapshot?.snapshotAnsi ?? result.scrollback;
+										// Fall back to pane's workspaceRun.command when
+										// terminal history metadata lacks the command.
+										const command =
+											result.previousCommand ||
+											useTabsStore.getState().panes[paneId]?.workspaceRun
+												?.command ||
+											null;
 										coldRestoreState.set(paneId, {
 											isRestored: true,
 											cwd: result.previousCwd || null,
 											scrollback,
-											command: result.previousCommand || null,
+											command,
 										});
 										setIsRestoredMode(true);
 										setRestoredCwd(result.previousCwd || null);
