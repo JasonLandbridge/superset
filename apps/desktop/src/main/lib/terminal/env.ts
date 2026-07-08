@@ -470,7 +470,12 @@ export function buildTerminalEnv(params: {
 	const terminalEnv: Record<string, string> = {
 		...baseEnv,
 		...shellEnv,
-		TERM_PROGRAM: "kitty",
+		// Avoid claiming "kitty" — xterm.js does not implement the full Kitty
+		// keyboard protocol. Claiming it causes programs to enable CSI-u encoding
+		// for all keys, which corrupts TUI prompts (arrows, modifiers, etc.) and
+		// produces raw escape-sequence garbage in the terminal. Cmd+Enter line
+		// editing is handled by xterm.js's own line-edit-translations handler.
+		TERM_PROGRAM: "superset",
 		TERM_PROGRAM_VERSION: process.env.npm_package_version || "1.0.0",
 		COLORTERM: "truecolor",
 		COLORFGBG: colorFgBg,
