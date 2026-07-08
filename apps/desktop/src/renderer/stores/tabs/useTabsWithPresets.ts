@@ -76,6 +76,7 @@ export function useTabsWithPresets(projectId?: string | null) {
 	const { data: newTabPresets = [] } =
 		electronTrpc.settings.getNewTabPresets.useQuery(newTabPresetsInput);
 
+	const setPaneWorkspaceRun = useTabsStore((s) => s.setPaneWorkspaceRun);
 	const storeAddTab = useTabsStore((s) => s.addTab);
 	const storeAddTabWithMultiplePanes = useTabsStore(
 		(s) => s.addTabWithMultiplePanes,
@@ -127,6 +128,13 @@ export function useTabsWithPresets(projectId?: string | null) {
 			{ paneId, tabId, workspaceId, command, cwd }: PresetPaneLaunch,
 			options?: { waitForMountedSession?: boolean },
 		) => {
+			// Persist the command on the pane so cold restore can re-execute it.
+			// workspaceRun.command is stored in zustand's persist middleware.
+			setPaneWorkspaceRun(paneId, {
+				workspaceId,
+				state: "running",
+				command,
+			});
 			void launchCommandInPane({
 				paneId,
 				tabId,
@@ -145,7 +153,7 @@ export function useTabsWithPresets(projectId?: string | null) {
 				});
 			});
 		},
-		[createOrAttach, writeToTerminal],
+		[setPaneWorkspaceRun, createOrAttach, writeToTerminal],
 	);
 
 	const launchPresetCommands = useCallback(
