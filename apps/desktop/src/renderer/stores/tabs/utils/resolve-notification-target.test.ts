@@ -2,11 +2,12 @@ import { describe, expect, it } from "bun:test";
 import { resolveNotificationTarget } from "./resolve-notification-target";
 
 describe("resolveNotificationTarget", () => {
-	const createPane = (id: string, tabId: string) => ({
+	const createPane = (id: string, tabId: string, terminalId?: string) => ({
 		id,
 		tabId,
 		type: "terminal" as const,
 		name: "Terminal",
+		data: terminalId ? { terminalId } : undefined,
 	});
 
 	const createChatPane = (id: string, tabId: string, sessionId: string) => ({
@@ -204,6 +205,64 @@ describe("resolveNotificationTarget", () => {
 			const result = resolveNotificationTarget({ tabId: "missing" }, state);
 
 			expect(result).toBeNull();
+		});
+	});
+
+	describe("with only terminalId", () => {
+		it("resolves pane, tab, and workspace from the terminal", () => {
+			const state = {
+				panes: {
+					"pane-1": createPane("pane-1", "tab-1", "term-1"),
+				},
+				tabs: [createTab("tab-1", "ws-1")],
+			};
+
+			const result = resolveNotificationTarget(
+				{ terminalId: "term-1" },
+				state,
+			);
+
+			expect(result).toEqual({
+				paneId: "pane-1",
+				tabId: "tab-1",
+				workspaceId: "ws-1",
+			});
+		});
+
+		it("returns null when terminal not found", () => {
+			const state = {
+				panes: {},
+				tabs: [createTab("tab-1", "ws-1")],
+			};
+
+			const result = resolveNotificationTarget(
+				{ terminalId: "missing-term" },
+				state,
+			);
+
+			expect(result).toBeNull();
+		});
+	});
+
+	describe("with terminalId and workspaceId (v2 fallback)", () => {
+		it("resolves pane from terminal and workspace from event", () => {
+			const state = {
+				panes: {
+					"pane-1": createPane("pane-1", "tab-1", "term-1"),
+				},
+				tabs: [createTab("tab-1", "ws-1")],
+			};
+
+			const result = resolveNotificationTarget(
+				{ terminalId: "term-1", workspaceId: "ws-1" },
+				state,
+			);
+
+			expect(result).toEqual({
+				paneId: "pane-1",
+				tabId: "tab-1",
+				workspaceId: "ws-1",
+			});
 		});
 	});
 
