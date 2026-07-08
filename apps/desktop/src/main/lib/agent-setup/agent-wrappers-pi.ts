@@ -1,7 +1,11 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { buildWrapperScript, createWrapper, writeFileIfChanged } from "./agent-wrappers-common";
+import {
+	buildWrapperScript,
+	createWrapper,
+	writeFileIfChanged,
+} from "./agent-wrappers-common";
 
 export const PI_EXTENSION_FILE = "superset-hooks.ts";
 
