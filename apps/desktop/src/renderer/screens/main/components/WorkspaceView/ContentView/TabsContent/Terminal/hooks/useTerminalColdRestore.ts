@@ -1,6 +1,7 @@
 import type { Terminal as XTerm } from "@xterm/xterm";
 import { useCallback, useRef, useState } from "react";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
+import { useTabsStore } from "renderer/stores/tabs/store";
 import { isTerminalAttachCanceledMessage } from "../attach-cancel";
 import { coldRestoreState } from "../state";
 import type {
@@ -107,15 +108,21 @@ export function useTerminalColdRestore({
 					if (result.isColdRestore) {
 						const scrollback =
 							result.snapshot?.snapshotAnsi ?? result.scrollback;
+						// Fall back to pane's workspaceRun.command when
+						// terminal history metadata lacks the command.
+						const command =
+							result.previousCommand ||
+							useTabsStore.getState().panes[paneId]?.workspaceRun?.command ||
+							null;
 						coldRestoreState.set(paneId, {
 							isRestored: true,
 							cwd: result.previousCwd || null,
 							scrollback,
-							command: result.previousCommand || null,
+							command,
 						});
 						setIsRestoredMode(true);
 						setRestoredCwd(result.previousCwd || null);
-						setRestoredCommand(result.previousCommand || null);
+						setRestoredCommand(command);
 
 						currentXterm.clear();
 						if (scrollback) {
@@ -200,6 +207,13 @@ export function useTerminalColdRestore({
 		pendingInitialStateRef.current = null;
 		resetModes();
 
+		// Resolve the command to re-execute. Priority:
+		// 1. Command from terminal history metadata (stored by previous session)
+		// 2. Command from pane's workspaceRun (stored by preset/launcher)
+		const currentColdRestore = coldRestoreState.get(paneId);
+		const resolvedCommand =
+			restoredCommandRef.current || currentColdRestore?.command || undefined;
+
 		// Create new session with previous cwd and command
 		createOrAttachRef.current(
 			{
@@ -209,7 +223,7 @@ export function useTerminalColdRestore({
 				cols: xterm.cols,
 				rows: xterm.rows,
 				cwd: restoredCwdRef.current || undefined,
-				command: restoredCommandRef.current || undefined,
+				command: resolvedCommand,
 				skipColdRestore: true,
 				allowKilled: true,
 			},

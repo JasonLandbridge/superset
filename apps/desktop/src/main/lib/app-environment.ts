@@ -7,9 +7,12 @@ const SUPERSET_HOME_DIR_ENV = "SUPERSET_HOME_DIR";
 
 export const SUPERSET_HOME_DIR =
 	process.env[SUPERSET_HOME_DIR_ENV] ||
-	join(homedir(), process.env.NODE_ENV === "development"
-		? `${SUPERSET_DIR_NAME}-dev`
-		: SUPERSET_DIR_NAME);
+	join(
+		homedir(),
+		process.env.NODE_ENV === "development"
+			? `${SUPERSET_DIR_NAME}-dev`
+			: SUPERSET_DIR_NAME,
+	);
 process.env[SUPERSET_HOME_DIR_ENV] = SUPERSET_HOME_DIR;
 
 export const SUPERSET_HOME_DIR_MODE = 0o700;
