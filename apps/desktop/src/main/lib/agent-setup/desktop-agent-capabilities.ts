@@ -15,7 +15,6 @@ export const DESKTOP_AGENT_SETUP_ACTIONS = [
 	"droid-settings-json",
 	"opencode-plugin",
 	"opencode-wrapper",
-	"pi-extension",
 	"pi-wrapper",
 	"cursor-hook-script",
 	"cursor-agent-wrapper",
@@ -68,7 +67,7 @@ export const DESKTOP_AGENT_SETUP_TARGETS = [
 	},
 	{
 		id: "pi",
-		setupActions: ["pi-extension", "pi-wrapper"],
+		setupActions: ["pi-wrapper"],
 		managedBinary: true,
 	},
 	{
