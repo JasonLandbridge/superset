@@ -45,7 +45,6 @@ const DESKTOP_AGENT_SETUP_RUNNERS: Record<DesktopAgentSetupAction, () => void> =
 		"droid-settings-json": createDroidSettingsJson,
 		"opencode-plugin": createOpenCodePlugin,
 		"opencode-wrapper": createOpenCodeWrapper,
-		"pi-extension": createPiExtension,
 		"pi-wrapper": createPiWrapper,
 		"cursor-hook-script": createCursorHookScript,
 		"cursor-agent-wrapper": createCursorAgentWrapper,
