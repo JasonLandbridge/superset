@@ -76,12 +76,7 @@ export {
 	getMastraHooksJsonContent,
 } from "./agent-wrappers-mastra";
 export {
-	createPiExtension,
 	createPiWrapper,
-	getPiExtensionContent,
-	getPiExtensionPath,
-	PI_EXTENSION_FILE,
-	PI_EXTENSION_MARKER,
 } from "./agent-wrappers-pi";
 export {
 	createVibeHooksToml,
