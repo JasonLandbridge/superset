@@ -71,7 +71,6 @@ const {
 	createDroidSettingsJson,
 	createDroidWrapper,
 	createMastraWrapper,
-	createPiExtension,
 	getClaudeGlobalSettingsJsonContent,
 	getClaudeManagedHookCommand,
 	getCodexGlobalHooksJsonContent,
@@ -83,9 +82,6 @@ const {
 	getAmpPluginContent,
 	getGeminiSettingsJsonContent,
 	getMastraHooksJsonContent,
-	getPiExtensionContent,
-	getPiExtensionPath,
-	PI_EXTENSION_MARKER,
 } = await import("./agent-wrappers");
 const { reconcileManagedEntries } = await import("./agent-wrappers-common");
 
@@ -1611,6 +1607,7 @@ describe("agent-wrappers codex hooks.json", () => {
 		).toBeNull();
 	});
 });
+
 
 import {
 	getVibeHooksTomlContent,
