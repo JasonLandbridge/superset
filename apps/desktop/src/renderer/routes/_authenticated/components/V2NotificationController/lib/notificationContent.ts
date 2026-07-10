@@ -10,20 +10,25 @@ import type {
 interface V2NativeNotificationContentOptions {
 	workspaceName: string;
 	payload: AgentLifecyclePayload;
+	paneName?: string;
 }
 
 export function getV2NativeNotificationContent({
 	workspaceName,
 	payload,
+	paneName,
 }: V2NativeNotificationContentOptions): { title: string; body: string } {
 	const agentLabel = getAgentLabel(payload.agent);
 	const action =
 		payload.eventType === "PermissionRequest" ? "Needs Attention" : "Complete";
 	const workspaceLabel = cleanLabel(workspaceName) ?? "Workspace";
+	const paneLabel = cleanLabel(paneName);
+
+	const body = paneLabel ? `${workspaceLabel} — ${paneLabel}` : workspaceLabel;
 
 	return {
 		title: `${agentLabel} - ${action}`,
-		body: workspaceLabel,
+		body,
 	};
 }
 
