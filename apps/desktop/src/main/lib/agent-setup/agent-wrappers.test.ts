@@ -1608,7 +1608,6 @@ describe("agent-wrappers codex hooks.json", () => {
 	});
 });
 
-
 import {
 	getVibeHooksTomlContent,
 	getVibeWrapperScript,
@@ -1697,6 +1696,13 @@ describe("vibe hooks.toml", () => {
 		);
 	});
 });
+
+import {
+	createPiExtension,
+	getPiExtensionContent,
+	getPiExtensionPath,
+	PI_EXTENSION_MARKER,
+} from "./agent-wrappers-pi";
 
 describe("agent-wrappers pi", () => {
 	beforeEach(() => {
