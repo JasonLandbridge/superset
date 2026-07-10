@@ -1,6 +1,7 @@
 import type { WorkspaceState } from "@superset/panes";
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import { useLiveQuery } from "@tanstack/react-db";
+import { useNavigate } from "@tanstack/react-router";
 import { useEffectEvent, useMemo } from "react";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -117,6 +118,8 @@ export function V2NotificationController() {
 		[workspaceHosts, workspaceStatesById, machineId, activeHostUrl, relayUrl],
 	);
 
+	const navigate = useNavigate();
+
 	const handleElectronAgentLifecycle = useEffectEvent(
 		(event: ElectronNotificationEvent) => {
 			if (event.type !== NOTIFICATION_EVENTS.AGENT_LIFECYCLE) return;
@@ -160,7 +163,22 @@ export function V2NotificationController() {
 	);
 
 	electronTrpc.notifications.subscribe.useSubscription(undefined, {
-		onData: handleElectronAgentLifecycle,
+		onData: (event) => {
+			if (event.type === NOTIFICATION_EVENTS.FOCUS_V2_NOTIFICATION_SOURCE) {
+				const data = event.data;
+				if (!data?.workspaceId || !data.source) return;
+				navigate({
+					to: "/v2-workspace/$workspaceId",
+					params: { workspaceId: data.workspaceId },
+					search:
+						data.source.type === "terminal"
+							? { terminalId: data.source.id }
+							: undefined,
+				});
+				return;
+			}
+			handleElectronAgentLifecycle(event);
+		},
 	});
 
 	return (
