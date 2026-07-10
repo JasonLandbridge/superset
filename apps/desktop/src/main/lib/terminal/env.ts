@@ -277,6 +277,14 @@ const ALLOWED_ENV_VARS = new Set([
 	"XDG_STATE_HOME",
 	"XDG_RUNTIME_DIR",
 
+	// Desktop environment — needed so xdg-open / gio open can launch
+	// browsers and file managers from within Superset terminals.
+	"DBUS_SESSION_BUS_ADDRESS",
+	"WAYLAND_DISPLAY",
+	"XDG_CURRENT_DESKTOP",
+	"XDG_SESSION_TYPE",
+	"BROWSER",
+
 	// Editor (user preference, safe)
 	"EDITOR",
 	"VISUAL",
