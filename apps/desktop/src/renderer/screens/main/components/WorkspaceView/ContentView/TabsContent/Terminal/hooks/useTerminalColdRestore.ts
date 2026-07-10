@@ -11,6 +11,18 @@ import type {
 } from "../types";
 import { scrollToBottom } from "../utils";
 
+/**
+ * Terminal exit messages that are written by useTerminalStream and
+ * workspaceRun hooks. Strip them from cold-restored scrollback so
+ * the old session's exit doesn't leak into the restored view.
+ */
+const TERMINAL_EXIT_PATTERN =
+	/(?:\r?\n(?:\r?\n)?\[(?:Process exited(?: with code \d+)?|Session killed)\](?:\r?\n\[(?:Press any key to restart|Restart to start a new session)\])?\s*)+$/;
+
+function stripExitMessages(scrollback: string): string {
+	return scrollback.replace(TERMINAL_EXIT_PATTERN, "");
+}
+
 export interface UseTerminalColdRestoreOptions {
 	paneId: string;
 	tabId: string;
@@ -126,12 +138,15 @@ export function useTerminalColdRestore({
 
 						currentXterm.clear();
 						if (scrollback) {
-							currentXterm.write(scrollback, () => {
-								requestAnimationFrame(() => {
-									if (xtermRef.current !== currentXterm) return;
-									scrollToBottom(currentXterm);
+							const cleaned = stripExitMessages(scrollback);
+							if (cleaned) {
+								currentXterm.write(cleaned, () => {
+									requestAnimationFrame(() => {
+										if (xtermRef.current !== currentXterm) return;
+										scrollToBottom(currentXterm);
+									});
 								});
-							});
+							}
 						}
 
 						didFirstRenderRef.current = true;
