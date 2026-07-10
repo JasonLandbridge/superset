@@ -7,6 +7,7 @@ import { playRingtone } from "renderer/lib/ringtones/play";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import type { PaneViewerData } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
 import { useRingtoneStore } from "renderer/stores/ringtone";
+import { useTabsStore } from "renderer/stores/tabs/store";
 import { useV2NotificationStore } from "renderer/stores/v2-notifications";
 import { getV2NativeNotificationContent } from "./notificationContent";
 import {
@@ -43,6 +44,26 @@ export function handleV2AgentLifecycleEvent({
 		paneLayout,
 	});
 	markSeenIfTargetVisible({ payload, paneLayout, target });
+
+	// When a session starts with a known agent, store the command on the
+	// Zustand pane so cold-restored terminals auto-launch the agent (useTerminalColdRestore
+	// resolves restortedCommand from workspaceRun.command).
+	if (payload.agent?.agentId && payload.eventType === "Attached") {
+		const tabsState = useTabsStore.getState();
+		for (const tab of tabsState.tabs) {
+			if (tab.workspaceId !== workspaceId) continue;
+			for (const pane of Object.values(tabsState.panes)) {
+				if (pane.tabId !== tab.id) continue;
+				if (!pane.workspaceRun?.command) {
+					tabsState.setPaneWorkspaceRun(pane.id, {
+						workspaceId,
+						state: "running",
+						command: payload.agent.agentId,
+					});
+				}
+			}
+		}
+	}
 
 	// Only Stop and PermissionRequest deserve sound. Start fires per-prompt
 	// (the working spinner is feedback enough); Attached/Detached fire on

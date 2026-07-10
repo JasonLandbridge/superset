@@ -229,7 +229,7 @@ The pi extension (`agent-wrappers-pi.ts` writes `~/.pi/agent/extensions/superset
 | `session_shutdown` | `Stop` | Cleanup on quit |
 | `session_end` | `SessionEnd` → `Detached` | Pane icon detach |
 
-**Activates only when `SUPERSET_TERMINAL_ID` is set** (v2 terminals). v1 terminals don't set this env var so the extension is a no-op — pi lifecycle events require the v2 host-service path.
+**Activates inside any Superset terminal.** `notify.sh` handles v1/v2 routing internally — the extension just needs to fire events. If `notify.sh` is missing it's a no-op (Superset uninstalled).
 
 #### Key Files
 
@@ -260,7 +260,7 @@ The pi extension (`agent-wrappers-pi.ts` writes `~/.pi/agent/extensions/superset
 
 - **Do NOT add `useTabsStore.setPaneStatus()` calls to the V2 pipeline** — V2 status dots are query-driven via `useTerminalAgentBindings` not Zustand. Zustand panes don't have `data.terminalId` at runtime.
 - **The `terminalId` → paneId lookup in `resolveNotificationTarget` is a runtime cast** — it accesses `(pane as { data?: { terminalId?: string } }).data` which may be absent. This only works for panes from `@superset/panes` not Zustand panes.
-- **Pi extension requires `SUPERSET_TERMINAL_ID`** — it's a no-op in v1 terminals. The extension file must exist at `~/.pi/agent/extensions/superset-hooks.ts` (written by `createPiExtension()` during agent hook setup).
 - **`notify.sh` checks for `"ignored":true` in host-service response** — without this check (added in commit `5cca1b1b9`) the v1 fallback never fires when the terminal session isn't in the DB.
 - **V1 terminals exclude `SUPERSET_TERMINAL_ID` from PTY env** — so `notify.sh` v2 path never activates for v1. V2 terminals exclude `SUPERSET_PANE_ID` — so the v1 fallback must resolve paneId from workspace/session data.
+- **Pi extension fires regardless of v1/v2** — `notify.sh` routes internally (v2 POST to host-service, v1 GET to local hook server). The extension just needs to fire; don't gate on env vars.
 - **The `mastracode` agent ID** — main uses `"mastracode"` not `"mastra"`. The linux-fixes branch tried to rename it; that change was reverted during rebase to stay compatible with upstream.
