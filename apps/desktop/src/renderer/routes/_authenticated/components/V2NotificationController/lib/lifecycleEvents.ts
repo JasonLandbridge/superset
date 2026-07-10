@@ -86,6 +86,7 @@ export function handleV2AgentLifecycleEvent({
 		workspaceId,
 		workspaceName,
 		target,
+		paneLayout,
 	});
 }
 
@@ -168,15 +169,24 @@ function showNativeNotification({
 	workspaceId,
 	workspaceName,
 	target,
+	paneLayout,
 }: {
 	payload: AgentLifecyclePayload;
 	workspaceId: string;
 	workspaceName: string;
 	target: V2NotificationTarget;
+	paneLayout: WorkspaceState<PaneViewerData> | null | undefined;
 }): void {
+	const paneName = target.paneId
+		? paneLayout?.tabs
+				?.flatMap((tab) => Object.values(tab.panes))
+				.find((pane) => pane.id === target.paneId)?.titleOverride
+		: undefined;
+
 	const { title, body } = getV2NativeNotificationContent({
 		workspaceName,
 		payload,
+		paneName,
 	});
 
 	void electronTrpcClient.notifications.showNative
