@@ -1,7 +1,49 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import {
 	buildWrapperScript,
 	createWrapper,
+	writeFileIfChanged,
 } from "./agent-wrappers-common";
+
+export const PI_EXTENSION_FILE = "superset-hooks.ts";
+
+const PI_EXTENSION_SIGNATURE = "// Superset pi extension";
+const PI_EXTENSION_VERSION = "v2";
+export const PI_EXTENSION_MARKER = `${PI_EXTENSION_SIGNATURE} ${PI_EXTENSION_VERSION}`;
+
+const PI_EXTENSION_TEMPLATE_PATH = path.join(
+	__dirname,
+	"templates",
+	"pi-extension.template.ts",
+);
+
+export function getPiExtensionPath(): string {
+	return path.join(
+		os.homedir(),
+		".pi",
+		"agent",
+		"extensions",
+		PI_EXTENSION_FILE,
+	);
+}
+
+export function getPiExtensionContent(): string {
+	const template = fs.readFileSync(PI_EXTENSION_TEMPLATE_PATH, "utf-8");
+	return template.replaceAll("{{MARKER}}", PI_EXTENSION_MARKER);
+}
+
+export function createPiExtension(): void {
+	const extensionPath = getPiExtensionPath();
+	const dir = path.dirname(extensionPath);
+	if (!fs.existsSync(dir)) {
+		fs.mkdirSync(dir, { recursive: true });
+	}
+	const content = getPiExtensionContent();
+	const changed = writeFileIfChanged(extensionPath, content, 0o644);
+	console.log(`[agent-setup] ${changed ? "Updated" : "Verified"} pi extension`);
+}
 
 /**
  * Creates a pi wrapper at ~/.superset/bin/pi that passes
@@ -25,5 +67,3 @@ fi`;
 	const script = buildWrapperScript("pi", execLine, { agentId: "pi" });
 	createWrapper("pi", script);
 }
-
-
