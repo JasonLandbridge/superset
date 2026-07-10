@@ -220,3 +220,94 @@ All changes live on the `linux-fixes` branch. Commits listed newest first.
 
 - **Terminal command persistence through cold restore** — When a terminal session has an explicit command (setup scripts, presets), store it in session metadata so cold restore re-executes it on reboot. Enables agent session resume after unexpected restarts (e.g. `pi --session-id <paneId>`).
 - **Pi wrapper with `--session-id`** — Creates `~/.superset/bin/pi` that passes `--session-id=$SUPERSET_PANE_ID`, allowing pi to resume its previous session across cold restarts.
+
+### Architecture: Notification & Status Dot Pipeline
+
+Agent lifecycle events (Start, Stop, PermissionRequest) flow through **two parallel paths** — one per terminal stack.
+
+#### Path A: V2 (host-service) — normal operation for v2 terminals
+
+```
+pi/claude/codex hook → notify.sh
+  → POST http://127.0.0.1:{port}/trpc/notifications.hook
+  → host-service records event in terminalAgentStore
+  → broadcasts via WebSocket "agent:lifecycle"
+  → HostNotificationSubscriber receives
+    → handleV2AgentLifecycleEvent:
+      → markSeenIfTargetVisible()   — persist seen timestamp (drives review idle)
+      → playRingtone()              — Stop PermissionRequest chime
+      → showNativeNotification()    — OS notification
+
+  Status dots (working permission review on sidebar tab strip):
+    → "agent:lifecycle" WS event invalidates terminalAgentBindings query
+    → useTerminalAgentBindings refetches from host
+    → deriveTerminalAgentStatus(lastEventType lastEventAt lastSeenAt) → PaneStatus
+    → useV2WorkspaceNotificationStatus → highest-priority status across all terminals
+    → sidebar dot updates
+```
+
+**Critical**: V2 status dots are **query-driven** via `useTerminalAgentBindings` from the host — NOT Zustand `useTabsStore`. The `handleV2AgentLifecycleEvent` handler only manages chimes native notifications and seen timestamps. Do NOT try to call `useTabsStore.setPaneStatus()` for v2 workspace events — Zustand panes don't carry `data.terminalId`.
+
+#### Path B: V1 fallback (Electron) — when host-service ignores or for v1 terminals
+
+```
+notify.sh → GET http://127.0.0.1:{port}/hook/complete
+  → notifications/server.ts:
+    → resolvePaneId() — finds pane from workspace session or focused pane
+    → notificationsEmitter.emit(AGENT_LIFECYCLE)
+  → windows/main.ts: NotificationManager.handleAgentLifecycle() — OS notification
+  → tRPC subscription → useAgentHookListener:
+    → resolveNotificationTarget() — pane tab workspace lookup
+    → useTabsStore.setPaneStatus() — Zustand tab strip dots
+```
+
+The v1 fallback only fires when the host-service returns `{"ignored":true}` (terminal session not in DB) or when `SUPERSET_HOST_AGENT_HOOK_URL` is unset. `notify.sh` checks the response body for `"ignored":true` before falling through.
+
+#### Pi Extension (pi lifecycle events)
+
+The pi extension (`agent-wrappers-pi.ts` writes `~/.pi/agent/extensions/superset-hooks.ts`) hooks into pi's runtime API:
+
+| Pi event | Hook event | Result |
+|---|---|---|
+| `session_start` | `SessionStart` → `Attached` | Pane icon binding |
+| `before_agent_start` | `UserPromptSubmit` → `Start` | Working indicator |
+| `tool_call(ask_user_question)` | `PermissionRequest` | Permission dot + notification |
+| `agent_end` | `Stop` | Review/idle dot + chime |
+| `session_shutdown` | `Stop` | Cleanup on quit |
+| `session_end` | `SessionEnd` → `Detached` | Pane icon detach |
+
+**Activates only when `SUPERSET_TERMINAL_ID` is set** (v2 terminals). v1 terminals don't set this env var so the extension is a no-op — pi lifecycle events require the v2 host-service path.
+
+#### Key Files
+
+| File | Role |
+|---|---|
+| `agent-wrappers/templates/notify-hook.template.sh` | Shell script POSTed to host-service then v1 fallback |
+| `agent-wrappers/templates/pi-extension.template.ts` | pi extension — writes to `~/.pi/agent/extensions/` |
+| `agent-wrappers/agent-wrappers-pi.ts` | Creates pi extension pi wrapper `createPiWrapper` `createPiExtension` |
+| `agent-wrappers/desktop-agent-capabilities.ts` | Agent setup action list — `pi-extension` and `pi-wrapper` for pi target |
+| `agent-wrappers/desktop-agent-setup.ts` | Runners — `pi-extension` → `createPiExtension` `pi-wrapper` → `createPiWrapper` |
+| `notifications/server.ts` | V1 Electron hook server — Express app on localhost |
+| `notifications/resolve-pane-id.ts` | V1 pane resolution from appState tabState |
+| `lib/trpc/routers/notifications.ts` | tRPC bridge — `notificationsEmitter` → renderer subscription |
+| `stores/tabs/useAgentHookListener.ts` | V1 renderer handler — updates Zustand pane statuses |
+| `stores/tabs/utils/resolve-notification-target.ts` | Renderer-side pane resolution — terminalId → paneId via `data.terminalId` runtime cast |
+| `V2NotificationController/lib/lifecycleEvents.ts` | `handleV2AgentLifecycleEvent` — chime native notification seen marking |
+| `V2NotificationController/components/HostNotificationSubscriber/` | WS subscriber — bridges host events to lifecycleEvents |
+| `hooks/host-service/useTerminalAgentBindings/` | react-query → host `terminalAgents.listByWorkspace` |
+| `hooks/host-service/useTerminalAgentStatuses/deriveTerminalAgentStatus.ts` | `lastEventType` + `lastSeenAt` → `PaneStatus` |
+| `hooks/host-service/useV2NotificationStatus/` | Highest-priority status across workspace terminals → sidebar dot |
+| `stores/v2-notifications/store.ts` | Local `terminalSeenAt` timestamps and `manualUnread` marks |
+| `packages/host-service/src/trpc/router/notifications/notifications.ts` | Host-service hook endpoint — `mapEventType` record in `terminalAgentStore` |
+| `packages/host-service/src/events/map-event-type.ts` | Normalizes hook event names to `Start` `Stop` `PermissionRequest` `Attached` `Detached` |
+| `packages/host-service/src/terminal/env.ts` | `buildV2TerminalEnv` — sets `SUPERSET_TERMINAL_ID` `SUPERSET_HOST_AGENT_HOOK_URL` (no `SUPERSET_PANE_ID`) |
+| `desktop/src/main/lib/terminal/env.ts` | `buildTerminalEnv` (v1) — sets `SUPERSET_PANE_ID` `SUPERSET_TAB_ID` `SUPERSET_WORKSPACE_ID` (no `SUPERSET_TERMINAL_ID`) |
+
+#### Common Pitfalls
+
+- **Do NOT add `useTabsStore.setPaneStatus()` calls to the V2 pipeline** — V2 status dots are query-driven via `useTerminalAgentBindings` not Zustand. Zustand panes don't have `data.terminalId` at runtime.
+- **The `terminalId` → paneId lookup in `resolveNotificationTarget` is a runtime cast** — it accesses `(pane as { data?: { terminalId?: string } }).data` which may be absent. This only works for panes from `@superset/panes` not Zustand panes.
+- **Pi extension requires `SUPERSET_TERMINAL_ID`** — it's a no-op in v1 terminals. The extension file must exist at `~/.pi/agent/extensions/superset-hooks.ts` (written by `createPiExtension()` during agent hook setup).
+- **`notify.sh` checks for `"ignored":true` in host-service response** — without this check (added in commit `5cca1b1b9`) the v1 fallback never fires when the terminal session isn't in the DB.
+- **V1 terminals exclude `SUPERSET_TERMINAL_ID` from PTY env** — so `notify.sh` v2 path never activates for v1. V2 terminals exclude `SUPERSET_PANE_ID` — so the v1 fallback must resolve paneId from workspace/session data.
+- **The `mastracode` agent ID** — main uses `"mastracode"` not `"mastra"`. The linux-fixes branch tried to rename it; that change was reverted during rebase to stay compatible with upstream.
