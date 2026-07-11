@@ -1,10 +1,13 @@
 import { useNavigate } from "@tanstack/react-router";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
+import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { NOTIFICATION_EVENTS } from "shared/constants";
 import { debugLog } from "shared/debug";
 import { useTabsStore } from "./store";
-import { resolveNotificationTarget } from "./utils/resolve-notification-target";
+import {
+	getPaneTerminalId,
+	resolveNotificationTarget,
+} from "./utils/resolve-notification-target";
 
 /**
  * Hook that listens for agent lifecycle events via tRPC subscription and updates
@@ -122,11 +125,13 @@ export function useAgentHookListener() {
 					state.setPaneStatus(paneId, "idle");
 				}
 			} else if (event.type === NOTIFICATION_EVENTS.FOCUS_TAB) {
-				navigateToWorkspace(workspaceId, navigate, {
-					search: {
-						tabId: target.tabId,
-						paneId: target.paneId,
-					},
+				const terminalId = paneId
+					? getPaneTerminalId(state.panes[paneId])
+					: undefined;
+				navigateToV2Workspace(workspaceId, navigate, {
+					search: terminalId
+						? { terminalId, focusRequestId: crypto.randomUUID() }
+						: { paneId, focusRequestId: crypto.randomUUID() },
 				});
 			}
 		},

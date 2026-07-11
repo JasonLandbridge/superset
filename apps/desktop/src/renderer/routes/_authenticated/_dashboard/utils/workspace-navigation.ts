@@ -11,6 +11,7 @@ export interface WorkspaceSearchParams {
 export interface V2WorkspaceSearchParams {
 	terminalId?: string;
 	chatSessionId?: string;
+	paneId?: string;
 	focusRequestId?: string;
 	openUrl?: string;
 	openUrlTarget?: "current-tab" | "new-tab";

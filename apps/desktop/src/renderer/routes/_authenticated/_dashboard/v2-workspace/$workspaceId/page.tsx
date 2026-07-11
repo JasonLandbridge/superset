@@ -44,6 +44,7 @@ import type { V2WorkspaceUrlOpenTarget } from "./utils/openUrlInV2Workspace";
 interface WorkspaceSearch {
 	terminalId?: string;
 	chatSessionId?: string;
+	paneId?: string;
 	focusRequestId?: string;
 	openUrl?: string;
 	openUrlTarget?: V2WorkspaceUrlOpenTarget;
@@ -68,6 +69,7 @@ export const Route = createFileRoute(
 	validateSearch: (raw: Record<string, unknown>): WorkspaceSearch => ({
 		terminalId: parseNonEmptyString(raw.terminalId),
 		chatSessionId: parseNonEmptyString(raw.chatSessionId),
+		paneId: parseNonEmptyString(raw.paneId),
 		focusRequestId: parseNonEmptyString(raw.focusRequestId),
 		openUrl: parseNonEmptyString(raw.openUrl),
 		openUrlTarget: parseOpenUrlTarget(raw.openUrlTarget),
@@ -107,6 +109,7 @@ function V2WorkspaceContent() {
 	const {
 		terminalId,
 		chatSessionId,
+		paneId,
 		focusRequestId,
 		openUrl,
 		openUrlTarget,
@@ -156,6 +159,21 @@ function V2WorkspaceContent() {
 		target: openUrlTarget,
 		requestId: openUrlRequestId,
 	});
+
+	// Focus a specific pane by ID (used by V1 notification clicks that
+	// carry paneId instead of terminalId).
+	useEffect(() => {
+		if (!paneId) return;
+		const state = store.getState();
+		for (const tab of state.tabs) {
+			const pane = Object.values(tab.panes).find((p) => p.id === paneId);
+			if (pane) {
+				state.setActiveTab(tab.id);
+				state.setActivePane({ tabId: tab.id, paneId: pane.id });
+				return;
+			}
+		}
+	}, [store, paneId]);
 
 	const {
 		openFilePaneFromTreeClick,

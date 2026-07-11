@@ -12,7 +12,7 @@ interface ResolvedTarget extends NotificationIds {
 
 /** Runtime data accessor for terminal panes (these carry data.terminalId
  * from @superset/panes, not exposed by the flat shared Pane type). */
-function getPaneTerminalId(pane: Pane): string | undefined {
+export function getPaneTerminalId(pane: Pane): string | undefined {
 	if (pane.type !== "terminal") return undefined;
 	const data = (pane as { data?: { terminalId?: string } }).data;
 	return data?.terminalId || undefined;
