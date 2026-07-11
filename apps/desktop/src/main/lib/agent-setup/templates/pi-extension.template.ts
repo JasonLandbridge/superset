@@ -95,6 +95,15 @@ export default function (pi: ExtensionAPI) {
 		}
 	});
 
+	// @gotgenes/pi-permission-system emits `permissions:ui_prompt` on
+	// pi.events when a tool, bash command, MCP call, or skill invocation
+	// hits an `ask` policy and the permission dialog is about to appear.
+	// Treat these the same as built-in permission requests so Superset
+	// shows a permission-needed indicator and OS notification.
+	pi.events.on("permissions:ui_prompt", (_data: unknown) => {
+		fire("PermissionRequest");
+	});
+
 	pi.on("tool_execution_end", (_event, ctx) => {
 		if (skip(ctx)) return;
 		fire("PostToolUse");
