@@ -15,3 +15,15 @@ export const pendingDetaches = new Map<string, NodeJS.Timeout>();
  * with fresh state, losing the cold restore detection.
  */
 export const coldRestoreState = new Map<string, ColdRestoreState>();
+
+/**
+ * Terminal exit messages written by useTerminalStream and workspaceRun hooks.
+ * Strip them from cold-restored scrollback so the old session's exit doesn't
+ * leak into the restored view.
+ */
+export const TERMINAL_EXIT_PATTERN =
+	/(?:\r?\n(?:\r?\n)?\[(?:Process exited(?: with code \d+)?|Session killed)\](?:\r?\n\[(?:Press any key to restart|Restart to start a new session)\])?\s*)+$/;
+
+export function stripExitMessages(scrollback: string): string {
+	return scrollback.replace(TERMINAL_EXIT_PATTERN, "");
+}
