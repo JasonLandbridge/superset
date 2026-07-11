@@ -259,6 +259,7 @@ export const Terminal = memo(function Terminal({
 			isStreamReadyRef,
 			isExitedRef,
 			wasKilledByUserRef,
+			isRestoredModeRef,
 			pendingEventsRef,
 			setExitStatus,
 			setConnectionError,

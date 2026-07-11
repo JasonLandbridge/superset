@@ -12,6 +12,7 @@ export interface UseTerminalStreamOptions {
 	isStreamReadyRef: React.MutableRefObject<boolean>;
 	isExitedRef: React.MutableRefObject<boolean>;
 	wasKilledByUserRef: React.MutableRefObject<boolean>;
+	isRestoredModeRef: React.MutableRefObject<boolean>;
 	pendingEventsRef: React.MutableRefObject<TerminalStreamEvent[]>;
 	setExitStatus: (status: "killed" | "exited" | null) => void;
 	setConnectionError: (error: string | null) => void;
@@ -38,6 +39,7 @@ export function useTerminalStream({
 	isStreamReadyRef,
 	isExitedRef,
 	wasKilledByUserRef,
+	isRestoredModeRef,
 	pendingEventsRef,
 	setExitStatus,
 	setConnectionError,
@@ -58,6 +60,11 @@ export function useTerminalStream({
 		(exitCode: number, xterm: XTerm, reason?: TerminalExitReason) => {
 			isExitedRef.current = true;
 			isStreamReadyRef.current = false;
+
+			// Don't write exit messages during cold restore — the restored
+			// scrollback already shows the old session's exit, and the new
+			// session hasn't started yet. handleStartShell takes over.
+			if (isRestoredModeRef.current) return;
 
 			const wasKilledByUser = reason === "killed";
 			wasKilledByUserRef.current = wasKilledByUser;
@@ -106,6 +113,7 @@ export function useTerminalStream({
 			isExitedRef,
 			isStreamReadyRef,
 			wasKilledByUserRef,
+			isRestoredModeRef,
 			setExitStatus,
 			setPaneStatus,
 			removePane,
