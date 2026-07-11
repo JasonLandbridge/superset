@@ -3,7 +3,7 @@ import type { Terminal as XTerm } from "@xterm/xterm";
 import { useCallback, useRef } from "react";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { setPaneWorkspaceRunState } from "renderer/stores/tabs/workspace-run";
-import { DEBUG_TERMINAL } from "../config";
+import { coldRestoreState } from "../state";
 import type { TerminalExitReason, TerminalStreamEvent } from "../types";
 
 export interface UseTerminalStreamOptions {
@@ -12,7 +12,6 @@ export interface UseTerminalStreamOptions {
 	isStreamReadyRef: React.MutableRefObject<boolean>;
 	isExitedRef: React.MutableRefObject<boolean>;
 	wasKilledByUserRef: React.MutableRefObject<boolean>;
-	isRestoredModeRef: React.MutableRefObject<boolean>;
 	pendingEventsRef: React.MutableRefObject<TerminalStreamEvent[]>;
 	setExitStatus: (status: "killed" | "exited" | null) => void;
 	setConnectionError: (error: string | null) => void;
@@ -39,7 +38,6 @@ export function useTerminalStream({
 	isStreamReadyRef,
 	isExitedRef,
 	wasKilledByUserRef,
-	isRestoredModeRef,
 	pendingEventsRef,
 	setExitStatus,
 	setConnectionError,
@@ -64,7 +62,11 @@ export function useTerminalStream({
 			// Don't write exit messages during cold restore — the restored
 			// scrollback already shows the old session's exit, and the new
 			// session hasn't started yet. handleStartShell takes over.
-			if (isRestoredModeRef.current) return;
+			// Use coldRestoreState (global map) instead of isRestoredModeRef
+			// because isRestoredModeRef is synced from React state during
+			// rendering, which lags behind the callback that triggers stream
+			// events here. coldRestoreState is set immediately.
+			if (coldRestoreState.get(paneId)?.isRestored) return;
 
 			const wasKilledByUser = reason === "killed";
 			wasKilledByUserRef.current = wasKilledByUser;
@@ -113,7 +115,6 @@ export function useTerminalStream({
 			isExitedRef,
 			isStreamReadyRef,
 			wasKilledByUserRef,
-			isRestoredModeRef,
 			setExitStatus,
 			setPaneStatus,
 			removePane,

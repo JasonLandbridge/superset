@@ -25,7 +25,7 @@ import {
 	setupFocusListener,
 } from "../helpers";
 import { isPaneDestroyed } from "../pane-guards";
-import { coldRestoreState, pendingDetaches } from "../state";
+import { coldRestoreState, pendingDetaches, stripExitMessages } from "../state";
 import type {
 	CreateOrAttachMutate,
 	CreateOrAttachResult,
@@ -619,10 +619,12 @@ export function useTerminalLifecycle({
 											}
 										}
 										if (storedColdRestore.scrollback && xterm) {
-											xterm.write(
+											const cleaned = stripExitMessages(
 												storedColdRestore.scrollback,
-												scheduleScrollToBottom,
 											);
+											if (cleaned) {
+												xterm.write(cleaned, scheduleScrollToBottom);
+											}
 										}
 										didFirstRenderRef.current = true;
 										return;
@@ -647,7 +649,10 @@ export function useTerminalLifecycle({
 										setIsRestoredMode(true);
 										setRestoredCwd(result.previousCwd || null);
 										if (scrollback && xterm) {
-											xterm.write(scrollback, scheduleScrollToBottom);
+											const cleaned = stripExitMessages(scrollback);
+											if (cleaned) {
+												xterm.write(cleaned, scheduleScrollToBottom);
+											}
 										}
 										didFirstRenderRef.current = true;
 										return;
